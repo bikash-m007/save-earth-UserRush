@@ -1,127 +1,97 @@
-# 🎮 UserRush - Web Game Development Event
+# 🎮 UserRush — Web Game Development Event Template
 
-## 🚀 Overview
+Welcome to **UserRush**, a web game development event where each team builds an interactive browser-based game using the provided starter template.
 
-We are organizing a **Web Game Development Event** where the goal is simple:
+This template already includes authentication, backend tracking, and database integration — so your focus should be entirely on building an engaging gameplay experience.
+---
 
-👉 Each team will build a **web-based game** using a starter template that we provide.
+# 🚀 Event Overview
 
-This template already includes:
+The provided template includes:
 
-- ✅ Google Login (restricted to institute emails)
-- ✅ Backend tracking system
-- ✅ Database integration
-- ✅ User participation tracking
+✅ Google Login (restricted to institute email IDs)
+✅ Backend tracking system
+✅ Database integration
+✅ User participation tracking
 
-So you **do NOT need to build authentication or backend from scratch**.
+This means you only need to focus on:
 
-👉 Your main focus: **Build an engaging game frontend**
+* 🎨 UI Design
+* 🎮 Game Mechanics
+* 🧠 Gameplay Experience
+* 🖱️ User Interaction
+
+The goal is not just to make something functional, but to build a game users genuinely enjoy playing.
 
 ---
 
-## 🎯 What You Need to Do
+# 👥 User Tracking System
 
-Your job is to:
+Each team receives a unique **GAME_ID**.
 
-- 🎨 Design the game UI  
-- 🎮 Implement game mechanics  
-- 🧠 Create engaging gameplay  
-- 🖱️ Handle user interaction  
+The system ensures:
 
-Think beyond just making something functional.
+* Every valid user is tracked
+* Only institute Google accounts are allowed
+* Each user is counted only once per game
+* Participation data is stored centrally for leaderboard scoring
 
-👉 Build something people **actually enjoy playing**
-
----
-
-## 👥 User Tracking System
-
-Each team will receive a **unique GAME_ID**.
-
-- Every logged-in user is tracked  
-- Only institute Google accounts are allowed  
-- Each user is counted **only once per game**  
-- All data is stored centrally  
+📌 **User engagement directly affects final scoring**
 
 ---
 
-## 🏆 Scoring Criteria
+# 🏆 Scoring Criteria (100 Marks)
 
-Total = **100 Marks**
+## Judges Evaluation — 50 Marks
 
-### 1. Judges Evaluation (50 marks)
+Projects will be evaluated based on:
 
-Based on:
+* Functionality
+* Creativity
+* UI / UX
+* Presentation
 
-- Functionality  
-- Creativity  
-- UI/UX  
-- Presentation  
+## User Engagement — 50 Marks
 
----
+Scoring depends on valid users playing your game.
 
-### 2. User Engagement (50 marks)
+* Highest valid user count receives full marks
+* Other teams are scored proportionally
 
-- Based on number of valid users  
-- Highest users = full marks  
-- Others scored proportionally  
-
-📊 A **live leaderboard** will be maintained.
+📊 A live leaderboard will be maintained during the event.
 
 ---
 
-## 📦 Submission Requirements
+# ⚠️ Important Rules
 
-Each team must submit:
-
-- 🌐 Deployed game link  
-- 💻 GitHub repository link  
-- 📝 Short explanation of game idea  
-
----
-
-## ⚠️ Important Rules
-
-- ❌ Do NOT modify authentication logic  
-- ❌ Do NOT change backend tracking system  
-- ✅ Only build your game frontend  
-- ✅ Use the provided template correctly  
+❌ Do not modify authentication logic
+❌ Do not change backend tracking system
+✅ Build only inside game frontend
+✅ Use provided template correctly
 
 ---
 
-## 🧠 Why This Event Matters
+# 🛠️ Getting Started
 
-This is not just a competition.
+## Step 1 — Fork and Clone Template Repository
 
-You will learn:
+```bash
+git clone your-template-link
+cd your-project-folder
+```
 
-- Frontend development  
-- Deployment  
-- Authentication integration  
-- Real-world system design  
-
----
-
-# 🛠️ How to Use This Template
-
-Follow these steps carefully 👇
-
----
-
-## 1️⃣ Install & Run Project
+## Step 2 — Install Dependencies
 
 ```bash
 npm install
 npm run dev
 ```
 
----
+## Step 3 — Set Your GAME_ID
 
-## 2️⃣ Set Your GAME_ID
+Open:
 
-Go to:
-
-```
+```bash
 src/constants.jsx
 ```
 
@@ -131,97 +101,57 @@ Update:
 export const GAME_ID = "your_game_id";
 ```
 
-⚠️ This is VERY IMPORTANT  
-👉 The GAME_ID should be your Roll number   
-👉 This identifies you in leaderboard
+📌 Your GAME_ID should be your roll number.
 
 ---
 
-## 3️⃣ Login System (Already Built)
+# 🎮 Build Your Game
 
-The template already handles:
+Main development file:
 
-- Google login popup  
-- Institute email restriction  
-- Token generation  
-- Backend verification  
-
-👉 You **do not need to change anything here**
-
----
-
-## 4️⃣ After Login Flow
-
-- User logs in  
-- Token is stored  
-- User is tracked in backend  
-- User is redirected to `/game`  
-
----
-
-## 5️⃣ Build Your Game
-
-Go to:
-
-```
+```bash
 src/pages/game.jsx
 ```
 
-👉 This is where YOU build your game.
-
 You can:
 
-- Replace existing UI  
-- Add game logic  
-- Create anything you want  
+* Replace existing UI
+* Add your own game logic
+* Build custom gameplay
 
 ---
 
-## 6️⃣  Deployment
+# 🌐 Deployment
 
-After building your game:
+Deploy using Vercel
 
-- Deploy using Vercel / Netlify  
-- Submit the deployed link  
+After deployment, complete both submission steps.
 
 ---
 
-# 📁 Project Structure
+# 📬 Support / Contact
 
-```
-src/
-│── pages/
-│   │── login.jsx   → Login page (DO NOT MODIFY)
-│   │── game.jsx    → Build your game here
-│
-│── constants/
-│   │── config.js   → Set your GAME_ID
-│
-│── components/
-│   │── ProtectedRoute.jsx → Route protection
-```
+If you face any issues during setup, development, deployment, or leaderboard submission, please contact us.
+
+## Where to Ask Questions
+ Samay Toradmal : 7709244965
+ Vaidik Saxena : 7067210282
+
+⚡ Please report issues early to avoid submission delays.
 
 ---
 
 # 🔥 Tips for Winning
 
-- Make your game addictive 🎮  
-- Keep UI clean and smooth ✨  
-- Reduce loading time ⚡  
-- Make it mobile friendly 📱  
-- Add sound / animations 🔊  
+* Make gameplay addictive 🎮
+* Keep UI polished and smooth ✨
+* Optimize loading speed ⚡
+* Make it mobile friendly 📱
 
 ---
 
-# 🏁 Final Advice
+# 🚀 Good Luck
 
-👉 Don't just build a project  
-👉 Build something people will share and play  
-
-Because:
-
-💡 **More players = higher score**
-
----
-
-## 🚀 Good luck and have fun!
+Build something creative.
+Build something memorable.
+Build something users want to replay.
