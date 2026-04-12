@@ -1,0 +1,18 @@
+{
+  "name": "SAVE EARTH: INTERCEPT PROTOCOL",
+  "short_name": "Save Earth",
+  "description": "Defend Earth from incoming space threats in this high-intensity interception game.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#020a14",
+  "theme_color": "#00e5ff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,10 +1,335 @@
-html, body, #root {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+  --cyan: #00e5ff;
+  --purple: #bf00ff;
+  --red: #ff1744;
+  --green: #00e676;
+  --amber: #ffab00;
+  --bg: #020a14;
+  --panel: rgba(0, 229, 255, 0.06);
+  --border: rgba(0, 229, 255, 0.18);
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  background: #000;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2300e5ff' stroke-width='1.5' stroke-opacity='0.5'/%3E%3Cpath d='M16 4v4m0 16v4M4 16h4m16 0h4' stroke='%2300e5ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='1.5' fill='%2300e5ff'/%3E%3C/svg%3E") 16 16, crosshair;
+}
+
+#app::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 229, 255, 0.015) 2px, rgba(0, 229, 255, 0.015) 4px);
+  pointer-events: none;
+  z-index: 10;
+}
+
+#hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.hud-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.hud-label {
+  font-size: 9px;
+  color: rgba(0, 229, 255, 0.5);
+  letter-spacing: .15em;
+  margin-bottom: 2px;
+}
+
+.hud-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+}
+
+.hud-val.lives {
+  color: var(--red);
+}
+
+.hud-val.combo {
+  color: var(--amber);
+}
+
+.hud-val.wave {
+  color: var(--purple);
+}
+
+#combo-bar-wrap {
+  padding: 0 12px 4px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#combo-bar-bg {
+  height: 3px;
+  background: rgba(255, 171, 0, 0.15);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+#combo-bar {
+  height: 100%;
+  background: var(--amber);
+  border-radius: 99px;
+  transition: width 0.2s;
+  width: 0%;
+}
+
+#canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#controls {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+#msg-bar {
+  font-size: 11px;
+  color: var(--cyan);
+  letter-spacing: .07em;
+  flex: 1;
+  text-align: center;
+  min-height: 16px;
+}
+
+.ctrl-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ctrl-btn:hover {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: var(--cyan);
+}
+
+.ctrl-btn.danger {
+  border-color: rgba(255, 23, 68, 0.4);
+  color: var(--red);
+}
+
+#shield-wrap {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.shield-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.shield-pip.active {
+  background: var(--cyan);
+  border-color: var(--cyan);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 10, 20, 0.92);
+  z-index: 20;
+  gap: 16px;
+  padding: 24px;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.ov-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--cyan);
+  letter-spacing: .08em;
+  text-align: center;
+  text-shadow: 0 0 30px rgba(0, 229, 255, 0.5);
+}
+
+.ov-title.red {
+  color: var(--red);
+}
+
+.ov-subtitle {
+  font-size: 12px;
+  color: rgba(0, 229, 255, 0.6);
+  letter-spacing: .12em;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.ov-score {
+  font-family: 'Orbitron', monospace;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.ov-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.ov-stat {
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.ov-stat-label {
+  font-size: 9px;
+  color: rgba(0, 229, 255, 0.4);
+  margin-bottom: 4px;
+}
+
+.ov-stat-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.big-btn {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  padding: 14px 32px;
+  border: 1px solid var(--cyan);
+  background: rgba(0, 229, 255, 0.08);
+  color: var(--cyan);
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+.big-btn:hover {
+  background: rgba(0, 229, 255, 0.18);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+}
+
+.float-score {
+  position: absolute;
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 15;
+  animation: floatUp 0.9s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-50px) scale(1.3); }
+}
+
+#dilation-ring {
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(0, 229, 255, 0);
+  pointer-events: none;
+  z-index: 12;
+  transition: border-color 0.2s;
+}
+
+#dilation-ring.active {
+  border-color: rgba(0, 229, 255, 0.45);
+  animation: pulseRing 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes pulseRing {
+  from { border-color: rgba(0, 229, 255, 0.25); }
+  to { border-color: rgba(0, 229, 255, 0.6); }
+}
+
+#wave-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(191, 0, 255, 0);
+  pointer-events: none;
+  z-index: 13;
+  transition: background 0.1s;
+}
+
+#wave-flash.active {
+  background: rgba(191, 0, 255, 0.2);
 }
