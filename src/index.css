@@ -1,14 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
 :root {
-  --cyan: #00e5ff;
-  --purple: #bf00ff;
-  --red: #ff1744;
-  --green: #00e676;
-  --amber: #ffab00;
-  --bg: #020a14;
-  --panel: rgba(0, 229, 255, 0.06);
-  --border: rgba(0, 229, 255, 0.18);
+  --cyan: #00f2ff;
+  --purple: #bc13fe;
+  --red: #ff0055;
+  --green: #00ff88;
+  --amber: #ffcc00;
+  --bg: #030816;
+  --panel: rgba(0, 242, 255, 0.04);
+  --border: rgba(0, 242, 255, 0.15);
+  --glass: rgba(2, 10, 25, 0.85);
 }
 
 * {
@@ -35,10 +36,10 @@ body,
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: radial-gradient(circle at 50% 50%, #0a1025 0%, #030816 100%);
   position: relative;
   overflow: hidden;
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2300e5ff' stroke-width='1.5' stroke-opacity='0.5'/%3E%3Cpath d='M16 4v4m0 16v4M4 16h4m16 0h4' stroke='%2300e5ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='1.5' fill='%2300e5ff'/%3E%3C/svg%3E") 16 16, crosshair;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2300f2ff' stroke-width='1.5' stroke-opacity='0.5'/%3E%3Cpath d='M16 4v4m0 16v4M4 16h4m16 0h4' stroke='%2300f2ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='1.5' fill='%2300f2ff'/%3E%3C/svg%3E") 16 16, crosshair;
 }
 
 #app::before {
@@ -54,11 +55,11 @@ body,
   display: flex;
   justify-content: space-between;
   align-items: stretch;
-  padding: 10px 12px 6px;
-  border-bottom: 1px solid var(--border);
-  background: var(--panel);
+  padding: 14px 16px 10px;
+  border-bottom: 2px solid var(--border);
+  background: rgba(0, 229, 255, 0.08);
   flex-shrink: 0;
-  gap: 8px;
+  gap: 12px;
 }
 
 .hud-block {
@@ -69,30 +70,35 @@ body,
 }
 
 .hud-label {
-  font-size: 9px;
-  color: rgba(0, 229, 255, 0.5);
-  letter-spacing: .15em;
-  margin-bottom: 2px;
+  font-size: 10px;
+  color: rgba(0, 229, 255, 0.7);
+  letter-spacing: .2em;
+  margin-bottom: 4px;
+  font-weight: bold;
 }
 
 .hud-val {
   font-family: 'Orbitron', monospace;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--cyan);
   line-height: 1;
+  text-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
 }
 
 .hud-val.lives {
   color: var(--red);
+  text-shadow: 0 0 20px rgba(255, 23, 68, 0.6);
 }
 
 .hud-val.combo {
   color: var(--amber);
+  text-shadow: 0 0 15px rgba(255, 171, 0, 0.4);
 }
 
 .hud-val.wave {
   color: var(--purple);
+  text-shadow: 0 0 15px rgba(191, 0, 255, 0.4);
 }
 
 #combo-bar-wrap {
@@ -130,47 +136,118 @@ canvas {
 }
 
 #controls {
-  padding: 8px 12px 10px;
-  border-top: 1px solid var(--border);
-  background: var(--panel);
+  padding: 12px 18px 16px;
+  border-top: 2px solid var(--border);
+  background: rgba(0, 229, 255, 0.04);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 12px;
 }
 
 #msg-bar {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--cyan);
-  letter-spacing: .07em;
+  letter-spacing: .05em;
   flex: 1;
   text-align: center;
   min-height: 16px;
+  opacity: 0.8;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  #hud {
+    padding: 8px 12px 4px;
+    gap: 6px;
+  }
+  .hud-val {
+    font-size: 18px;
+  }
+  .hud-label {
+    font-size: 8px;
+    margin-bottom: 1px;
+  }
+  .hud-block {
+    min-width: 45px;
+  }
+  #combo-bar-wrap {
+    padding: 0 10px 2px;
+  }
+  #msg-bar {
+    display: none;
+  }
+  #controls {
+    padding: 8px 12px 8px;
+    gap: 10px;
+  }
+  .ctrl-btn {
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+  #shieldBtn {
+    padding: 8px 16px;
+    font-size: 13px;
+    min-width: 100px;
+  }
+  #shieldBtn::before {
+    font-size: 14px;
+  }
 }
 
 .ctrl-btn {
-  background: transparent;
+  background: rgba(0, 229, 255, 0.05);
   border: 1px solid var(--border);
   color: var(--cyan);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  letter-spacing: .1em;
-  padding: 6px 10px;
-  border-radius: 4px;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: all 0.2s;
 }
 
 .ctrl-btn:hover {
-  background: rgba(0, 229, 255, 0.08);
+  background: rgba(0, 229, 255, 0.12);
   border-color: var(--cyan);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
 }
 
-.ctrl-btn.danger {
-  border-color: rgba(255, 23, 68, 0.4);
+#shieldBtn {
+  padding: 14px 28px;
+  font-size: 16px;
+  border-color: var(--red);
   color: var(--red);
+  background: rgba(255, 23, 68, 0.08);
+  border-width: 2px;
+  box-shadow: 0 0 20px rgba(255, 23, 68, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#shieldBtn::before {
+  content: '🛡️';
+  font-size: 18px;
+}
+
+#shieldBtn:hover {
+  background: rgba(255, 23, 68, 0.15);
+  box-shadow: 0 0 30px rgba(255, 23, 68, 0.4);
+  transform: translateY(-2px);
+}
+
+#shieldBtn:active {
+  transform: translateY(1px);
 }
 
 #shield-wrap {
@@ -180,12 +257,13 @@ canvas {
 }
 
 .shield-pip {
-  width: 8px;
-  height: 8px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  border: 2px solid rgba(0, 242, 255, 0.4);
   background: transparent;
-  transition: background 0.2s;
+  transition: all 0.3s;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 .shield-pip.active {
@@ -200,10 +278,31 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(2, 10, 20, 0.92);
+  background: #020a14;
   z-index: 20;
-  gap: 16px;
+  gap: 12px;
   padding: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.overlay::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .overlay {
+    padding: 16px 12px;
+    gap: 10px;
+  }
+  #startOverlay {
+    justify-content: flex-start;
+  }
+  .shield-pip {
+    width: 10px;
+    height: 10px;
+  }
 }
 
 .overlay.hidden {
