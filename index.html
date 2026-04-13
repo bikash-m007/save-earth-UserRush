@@ -8,7 +8,18 @@
   </head>
   <body>
     <div id="root"></div>
-    <script> window.APP_CONFIG = { firebaseConfig: { apiKey: "AIzaSyA49UPpB4Ofi8N0nFp1giYXD2XyIZ9fEjI", authDomain: "gameforge-df613.firebaseapp.com", projectId: "gameforge-df613" } }; </script>
+    <script>
+      // Failsafe: Unregister stuck service workers in development
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) {
+            registration.unregister();
+            console.log('Failsafe: Unregistered service worker');
+          }
+        });
+      }
+      window.APP_CONFIG = { firebaseConfig: { apiKey: "AIzaSyA49UPpB4Ofi8N0nFp1giYXD2XyIZ9fEjI", authDomain: "gameforge-df613.firebaseapp.com", projectId: "gameforge-df613" } }; 
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
   

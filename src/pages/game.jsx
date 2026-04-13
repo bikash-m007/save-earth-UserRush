@@ -3,11 +3,33 @@ import { useEffect, useRef } from "react";
 export default function Game() {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
+  const audioRef = useRef(null);
+  const levelUpRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
     const ctx = canvas.getContext("2d");
+    const bgMusic = audioRef.current;
+    const levelUpAudio = levelUpRef.current;
+
+    if (bgMusic) {
+      bgMusic.volume = 0.5;
+      bgMusic.loop = true;
+    }
+    if (levelUpAudio) {
+      levelUpAudio.volume = 0.8;
+    }
+
+    let musicEnabled = true;
+
+    const tryPlayMusic = () => {
+      if (musicEnabled && bgMusic && bgMusic.paused) {
+        bgMusic.play().catch(() => {});
+      }
+    };
+    window.addEventListener("click", tryPlayMusic, { once: true });
+    window.addEventListener("touchstart", tryPlayMusic, { once: true });
 
     let W, H;
     function resize() {
@@ -35,9 +57,9 @@ export default function Game() {
     // Difficulty
     let difficulty = "medium";
     const DIFF_SETTINGS = {
-      easy:   { boltSpeed: 650, reload: 0.15, boltR: 5, orbMult: 0.8 },
+      easy: { boltSpeed: 650, reload: 0.15, boltR: 5, orbMult: 0.8 },
       medium: { boltSpeed: 520, reload: 0.35, boltR: 4, orbMult: 1.0 },
-      hard:   { boltSpeed: 420, reload: 0.55, boltR: 3, orbMult: 1.25 },
+      hard: { boltSpeed: 420, reload: 0.55, boltR: 3, orbMult: 1.25 },
     };
     let BOLT_SPEED = DIFF_SETTINGS.medium.boltSpeed;
     let RELOAD_TIME = DIFF_SETTINGS.medium.reload;
@@ -52,6 +74,17 @@ export default function Game() {
 
     // Audio
     let audioCtx;
+
+    function toggleMusic() {
+      musicEnabled = !musicEnabled;
+      if (musicEnabled) {
+        if (state === "playing") bgMusic.play().catch(() => {});
+      } else {
+        bgMusic.pause();
+      }
+      const mBtn = document.getElementById("musicToggleBtn");
+      if (mBtn) mBtn.textContent = musicEnabled ? "🔊" : "🔇";
+    }
     function getAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       return audioCtx;
@@ -65,14 +98,28 @@ export default function Game() {
         g.gain.setValueAtTime(vol, ac.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
         o.start(); o.stop(ac.currentTime + dur);
-      } catch (e) {}
+      } catch (e) { }
     }
-    function playHit() { beep(880, 0.12, "square", 0.12); setTimeout(() => beep(1100, 0.08, "sine", 0.1), 60); if (navigator.vibrate) navigator.vibrate(20); }
-    function playMiss() { beep(200, 0.18, "sawtooth", 0.1); if (navigator.vibrate) navigator.vibrate(10); }
-    function playDanger() { beep(110, 0.35, "sawtooth", 0.18); beep(90, 0.5, "square", 0.12); if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
-    function playPowerup() { beep(660, 0.06, "sine", 0.1); setTimeout(() => beep(880, 0.06, "sine", 0.1), 70); setTimeout(() => beep(1100, 0.1, "sine", 0.1), 140); if (navigator.vibrate) navigator.vibrate(30); }
-    function playFire() { beep(440, 0.05, "square", 0.08); }
-    function playWave() { beep(300, 0.1, "sine", 0.1); setTimeout(() => beep(500, 0.1, "sine", 0.1), 100); setTimeout(() => beep(700, 0.15, "sine", 0.12), 200); }
+    function playHit() {
+      // Better Thriller Intercept: Sharp square punch + Metallic snap
+      // Pitch increases slightly with combo for a satisfying'progression' feel
+      const p = Math.min(combo * 35, 350);
+      beep(130 + p, 0.2, "square", 0.2); 
+      setTimeout(() => beep(2100 + p, 0.07, "sawtooth", 0.15), 15);
+      if (navigator.vibrate) navigator.vibrate(25);
+    }
+    function playMiss() { beep(180, 0.22, "sawtooth", 0.12); if (navigator.vibrate) navigator.vibrate(10); }
+    function playDanger() { beep(90, 0.4, "sawtooth", 0.2); beep(70, 0.5, "square", 0.14); if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
+    function playPowerup() { beep(520, 0.08, "sine", 0.12); setTimeout(() => beep(780, 0.08, "sine", 0.12), 80); setTimeout(() => beep(1040, 0.12, "sine", 0.12), 160); if (navigator.vibrate) navigator.vibrate(35); }
+    function playFire() { beep(380, 0.06, "square", 0.08); }
+    function playWave() { 
+      console.log("LEVEL UP SOUND TRIGGERED");
+      const notes = [440, 554, 659, 880, 1108, 1318];
+      notes.forEach((f, i) => {
+        setTimeout(() => beep(f, 0.4, "sine", 0.2), i * 100);
+      });
+      if (navigator.vibrate) navigator.vibrate([50, 50, 100, 100]);
+    }
 
     // Particles
     function spawnParticles(x, y, color, n = 18, speed = 120) {
@@ -200,6 +247,7 @@ export default function Game() {
         beep(500, 0.2, "sine", 0.2);
         setTimeout(() => beep(700, 0.2, "sine", 0.2), 200);
         setTimeout(() => beep(900, 0.4, "sine", 0.2), 400);
+        bgMusic.pause();
         return;
       }
       level++;
@@ -216,7 +264,7 @@ export default function Game() {
     }
 
     function startGame(diff = "medium") {
-      try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {}
+      try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => { }); } catch (e) { }
       difficulty = diff;
       const s = DIFF_SETTINGS[diff];
       BOLT_SPEED = s.boltSpeed; RELOAD_TIME = s.reload; BOLT_R = s.boltR; reloadTimer = 0;
@@ -230,7 +278,7 @@ export default function Game() {
       if (comboEl) comboEl.textContent = "0";
       if (comboBar) comboBar.style.width = "0%";
       updateShieldUI();
-      ["startOverlay","gameoverOverlay","winOverlay"].forEach(id => {
+      ["startOverlay", "gameoverOverlay", "winOverlay"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add("hidden");
       });
@@ -239,6 +287,12 @@ export default function Game() {
       spawnPowerup();
       playWave();
       setMsg("AIM — MISSION: " + diff.toUpperCase());
+      if (bgMusic) {
+        bgMusic.currentTime = 0;
+        if (musicEnabled) {
+          bgMusic.play().catch(e => console.warn("Music play blocked initially:", e));
+        }
+      }
       if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); }
       else { last = performance.now(); }
     }
@@ -253,6 +307,7 @@ export default function Game() {
       const fhi = document.getElementById("finalHigh"); if (fhi) fhi.textContent = highScore;
       const go = document.getElementById("gameoverOverlay"); if (go) go.classList.remove("hidden");
       playDanger();
+      bgMusic.pause();
     }
 
     let last = 0;
@@ -379,7 +434,7 @@ export default function Game() {
       for (let y = 0; y < H; y += 38) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
       const bw = 24;
       ctx.strokeStyle = "rgba(0,229,255,0.25)"; ctx.lineWidth = 1.5;
-      [[0,0,1,1],[W,0,-1,1],[0,H,1,-1],[W,H,-1,-1]].forEach(([cx,cy,sx,sy]) => {
+      [[0, 0, 1, 1], [W, 0, -1, 1], [0, H, 1, -1], [W, H, -1, -1]].forEach(([cx, cy, sx, sy]) => {
         ctx.beginPath(); ctx.moveTo(cx, cy + sy * bw); ctx.lineTo(cx, cy); ctx.lineTo(cx + sx * bw, cy); ctx.stroke();
       });
 
@@ -404,7 +459,7 @@ export default function Game() {
         if (!o.alive) return;
         const ang = Math.atan2(o.y - danger.y, o.x - danger.x);
         ctx.save(); ctx.translate(danger.x + Math.cos(ang) * (danger.r + 8), danger.y + Math.sin(ang) * (danger.r + 8));
-        ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(4,0); ctx.lineTo(-4,-4); ctx.lineTo(-4,4); ctx.fill();
+        ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(-4, -4); ctx.lineTo(-4, 4); ctx.fill();
         ctx.restore();
       });
       ctx.restore();
@@ -429,7 +484,7 @@ export default function Game() {
         for (let i = 1; i < o.trail.length; i++) {
           const a = i / o.trail.length;
           ctx.strokeStyle = `rgba(191,0,255,${a * 0.35})`; ctx.lineWidth = a * 5;
-          ctx.beginPath(); ctx.moveTo(o.trail[i-1].x, o.trail[i-1].y); ctx.lineTo(o.trail[i].x, o.trail[i].y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(o.trail[i - 1].x, o.trail[i - 1].y); ctx.lineTo(o.trail[i].x, o.trail[i].y); ctx.stroke();
         }
         if (o.alive) {
           ctx.strokeStyle = "#bf00ff"; ctx.lineWidth = 2;
@@ -451,7 +506,7 @@ export default function Game() {
         for (let i = 1; i < b.trail.length; i++) {
           const a = i / b.trail.length;
           ctx.strokeStyle = `rgba(0,229,255,${a * 0.6})`; ctx.lineWidth = a * 4;
-          ctx.beginPath(); ctx.moveTo(b.trail[i-1].x, b.trail[i-1].y); ctx.lineTo(b.trail[i].x, b.trail[i].y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(b.trail[i - 1].x, b.trail[i - 1].y); ctx.lineTo(b.trail[i].x, b.trail[i].y); ctx.stroke();
         }
         if (b.alive) {
           ctx.fillStyle = "#00e5ff";
@@ -493,7 +548,7 @@ export default function Game() {
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         const a = i * Math.PI / 3 - Math.PI / 6;
-        i === 0 ? ctx.moveTo(Math.cos(a)*(TURRET_R+2), Math.sin(a)*(TURRET_R+2)) : ctx.lineTo(Math.cos(a)*(TURRET_R+2), Math.sin(a)*(TURRET_R+2));
+        i === 0 ? ctx.moveTo(Math.cos(a) * (TURRET_R + 2), Math.sin(a) * (TURRET_R + 2)) : ctx.lineTo(Math.cos(a) * (TURRET_R + 2), Math.sin(a) * (TURRET_R + 2));
       }
       ctx.closePath(); ctx.stroke();
       ctx.fillStyle = "rgba(0,229,255,0.08)"; ctx.fill();
@@ -594,7 +649,14 @@ export default function Game() {
     const onEasy = () => startGame("easy");
     const onMed = () => startGame("medium");
     const onHard = () => startGame("hard");
-    const onRestart = () => { const so = document.getElementById("startOverlay"); if (so) so.classList.remove("hidden"); const go = document.getElementById("gameoverOverlay"); if (go) go.classList.add("hidden"); state = "idle"; };
+    const onRestart = () => {
+      const so = document.getElementById("startOverlay");
+      if (so) so.classList.remove("hidden");
+      const go = document.getElementById("gameoverOverlay");
+      if (go) go.classList.add("hidden");
+      state = "idle";
+      if (bgMusic) bgMusic.pause();
+    };
     const onShield = () => useShield();
     const onNextLevel = () => {
       const lo = document.getElementById("levelOverlay"); if (lo) lo.classList.add("hidden");
@@ -614,8 +676,10 @@ export default function Game() {
     document.getElementById("shieldBtn")?.addEventListener("click", onShield);
     document.getElementById("nextLevelBtn")?.addEventListener("click", onNextLevel);
     document.getElementById("winRestartBtn")?.addEventListener("click", onWinRestart);
+    document.getElementById("musicToggleBtn")?.addEventListener("click", toggleMusic);
 
     // Service Worker
+    /* 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("/sw.js")
@@ -623,6 +687,7 @@ export default function Game() {
           .catch(err => console.log("SW failed:", err));
       });
     }
+    */
 
     // Start loop
     last = performance.now();
@@ -639,15 +704,19 @@ export default function Game() {
       document.getElementById("shieldBtn")?.removeEventListener("click", onShield);
       document.getElementById("nextLevelBtn")?.removeEventListener("click", onNextLevel);
       document.getElementById("winRestartBtn")?.removeEventListener("click", onWinRestart);
+      document.getElementById("musicToggleBtn")?.removeEventListener("click", toggleMusic);
+      if (bgMusic) bgMusic.pause();
     };
   }, []);
 
   return (
     <div id="app">
+      <audio ref={audioRef} src="/assets/audio/music_unlimited-stranger-things-124008.mp3" preload="auto"></audio>
+      <audio ref={levelUpRef} src="https://cdn.pixabay.com/audio/2023/11/04/audio_98d68998de.mp3" preload="auto"></audio>
       {/* HUD */}
       <div id="hud">
         <div className="hud-block"><div className="hud-label">SCORE</div><div className="hud-val" id="scoreEl">0</div></div>
-        <div className="hud-block"><div className="hud-label">LEVEL</div><div className="hud-val" id="levelEl" style={{color:"var(--green)"}}>1</div></div>
+        <div className="hud-block"><div className="hud-label">LEVEL</div><div className="hud-val" id="levelEl" style={{ color: "var(--green)" }}>1</div></div>
         <div className="hud-block"><div className="hud-label">COMBO</div><div className="hud-val combo" id="comboEl">0</div></div>
         <div className="hud-block">
           <div className="hud-label">SHIELD</div>
@@ -658,6 +727,7 @@ export default function Game() {
           </div>
         </div>
         <div className="hud-block"><div className="hud-label">LIVES</div><div className="hud-val lives" id="livesEl">3</div></div>
+        <div className="hud-block"><button id="musicToggleBtn" className="music-btn">🔊</button></div>
       </div>
       <div id="combo-bar-wrap"><div id="combo-bar-bg"><div id="combo-bar"></div></div></div>
 
@@ -677,20 +747,20 @@ export default function Game() {
 
       {/* Start overlay */}
       <div className="overlay" id="startOverlay">
-        <div className="ov-title" style={{color:"var(--green)",textShadow:"0 0 40px rgba(0,230,118,0.7)",fontSize:"32px",letterSpacing:".12em"}}>🌍 SAVE THE EARTH</div>
-        <div className="ov-subtitle" style={{color:"rgba(0,230,118,0.8)",fontSize:"13px",letterSpacing:".1em"}}>INTERCEPT PROTOCOL INITIATED</div>
-        <div className="ov-subtitle" style={{fontSize:"11px",lineHeight:"2",border:"1px solid rgba(0,230,118,0.2)",borderRadius:"6px",padding:"10px 14px",background:"rgba(0,230,118,0.05)"}}>
-          ☄️ Incoming orbs threaten the Earth<br/>
-          🎯 CLICK / TAP to fire interceptor bolt<br/>
-          ⏱ HOLD to activate Time Dilation near Earth<br/>
-          🛡 SHIELD eliminates the nearest orb<br/>
+        <div className="ov-title" style={{ color: "var(--green)", textShadow: "0 0 40px rgba(0,230,118,0.7)", fontSize: "32px", letterSpacing: ".12em" }}>🌍 SAVE THE EARTH</div>
+        <div className="ov-subtitle" style={{ color: "rgba(0,230,118,0.8)", fontSize: "13px", letterSpacing: ".1em" }}>INTERCEPT PROTOCOL INITIATED</div>
+        <div className="ov-subtitle" style={{ fontSize: "11px", lineHeight: "2", border: "1px solid rgba(0,230,118,0.2)", borderRadius: "6px", padding: "10px 14px", background: "rgba(0,230,118,0.05)" }}>
+          ☄️ Incoming orbs threaten the Earth<br />
+          🎯 CLICK / TAP to fire interceptor bolt<br />
+          ⏱ HOLD to activate Time Dilation near Earth<br />
+          🛡 SHIELD eliminates the nearest orb<br />
           🔴 Red arrows on Earth show incoming threats
         </div>
-        <div className="ov-subtitle" style={{fontSize:"10px",color:"rgba(0,230,118,0.5)"}}>5 LEVELS · INTERCEPT ORBS TO ADVANCE · DEFEND EARTH</div>
-        <div style={{display:"flex",gap:"10px",width:"100%",marginTop:"10px"}}>
-          <button className="big-btn" id="startEasy" style={{borderColor:"var(--green)",color:"var(--green)",background:"rgba(0,230,118,0.08)",flex:"1",padding:"14px 0"}}>EASY</button>
-          <button className="big-btn" id="startMedium" style={{borderColor:"var(--amber)",color:"var(--amber)",background:"rgba(255,171,0,0.08)",flex:"1",padding:"14px 0"}}>MED</button>
-          <button className="big-btn" id="startHard" style={{borderColor:"var(--red)",color:"var(--red)",background:"rgba(255,23,68,0.08)",flex:"1",padding:"14px 0"}}>HARD</button>
+        <div className="ov-subtitle" style={{ fontSize: "10px", color: "rgba(0,230,118,0.5)" }}>5 LEVELS · INTERCEPT ORBS TO ADVANCE · DEFEND EARTH</div>
+        <div style={{ display: "flex", gap: "10px", width: "100%", marginTop: "10px" }}>
+          <button className="big-btn" id="startEasy" style={{ borderColor: "var(--green)", color: "var(--green)", background: "rgba(0,230,118,0.08)", flex: "1", padding: "14px 0" }}>EASY</button>
+          <button className="big-btn" id="startMedium" style={{ borderColor: "var(--amber)", color: "var(--amber)", background: "rgba(255,171,0,0.08)", flex: "1", padding: "14px 0" }}>MED</button>
+          <button className="big-btn" id="startHard" style={{ borderColor: "var(--red)", color: "var(--red)", background: "rgba(255,23,68,0.08)", flex: "1", padding: "14px 0" }}>HARD</button>
         </div>
       </div>
 
@@ -709,14 +779,14 @@ export default function Game() {
 
       {/* Level overlay */}
       <div className="overlay hidden" id="levelOverlay">
-        <div className="ov-title" id="levelTitle" style={{color:"var(--amber)"}}>LEVEL 2</div>
+        <div className="ov-title" id="levelTitle" style={{ color: "var(--amber)" }}>LEVEL 2</div>
         <div className="ov-subtitle">LIVES RESTORED TO 3</div>
         <button className="big-btn" id="nextLevelBtn">START LEVEL</button>
       </div>
 
       {/* Win overlay */}
       <div className="overlay hidden" id="winOverlay">
-        <div className="ov-title" style={{color:"var(--green)",textShadow:"0 0 30px rgba(0,230,118,0.5)"}}>VICTORY</div>
+        <div className="ov-title" style={{ color: "var(--green)", textShadow: "0 0 30px rgba(0,230,118,0.5)" }}>VICTORY</div>
         <div className="ov-subtitle">PROTOCOL SUCCESSFULLY DEFENDED</div>
         <div className="ov-score" id="winScoreEl">0</div>
         <button className="big-btn" id="winRestartBtn">PLAY AGAIN</button>
