@@ -94,12 +94,35 @@ export default function Game() {
         bgMusic.pause();
       }
       const mBtn = document.getElementById("musicToggleBtn");
-      if (mBtn) mBtn.textContent = musicEnabled ? "🔊" : "🔇";
+      if (mBtn) {
+        mBtn.innerHTML = musicEnabled ?
+          `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>` :
+          `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>`;
+      }
     }
     function getAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       return audioCtx;
     }
+    let isPaused = false;
+    function togglePause() {
+      if (state !== "playing" && state !== "levelup") return;
+      isPaused = !isPaused;
+      const pBtn = document.getElementById("pauseBtn");
+      const po = document.getElementById("pauseOverlay");
+      if (isPaused) {
+        if (bgMusic) bgMusic.pause();
+        if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+        if (po) po.classList.remove("hidden");
+        setMsg("GAME PAUSED");
+      } else {
+        if (musicEnabled && bgMusic && state === "playing") bgMusic.play().catch(() => { });
+        if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg>`;
+        if (po) po.classList.add("hidden");
+        setMsg("MISSION RESUMED");
+      }
+    }
+
     function beep(freq, dur, type = "sine", vol = 0.15) {
       try {
         const ac = getAudio();
@@ -351,6 +374,12 @@ export default function Game() {
           bgMusic.play().catch(e => console.warn("Music play blocked initially:", e));
         }
       }
+      isPaused = false;
+      const pBtn = document.getElementById("pauseBtn");
+      if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg>`;
+      const po = document.getElementById("pauseOverlay");
+      if (po) po.classList.add("hidden");
+
       if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); }
       else { last = performance.now(); }
     }
@@ -364,7 +393,7 @@ export default function Game() {
       if (!idToken) return;
 
       try {
-        await fetch(BACKEND_URL, {
+        const response = await fetch(BACKEND_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -375,6 +404,11 @@ export default function Game() {
             level: lvl
           })
         });
+        if (response.ok) {
+          console.log("Score submitted successfully");
+        } else {
+          console.warn("Score submission failed with status:", response.status);
+        }
       } catch (err) {
         console.error("Score submission failed:", err);
       }
@@ -382,11 +416,13 @@ export default function Game() {
 
     function endGame() {
       state = "gameover";
-      saveHighScore(difficulty, score, level);
       const currentModeHS = getHighScore(difficulty);
+      saveHighScore(difficulty, score, level);
+
       if (score > currentModeHS) {
-        localStorage.setItem(`highScore_${GAME_ID}_${difficulty}`, score);
         highScore = score;
+      } else {
+        highScore = currentModeHS;
       }
       const fs = document.getElementById("finalScore"); if (fs) fs.textContent = score;
       const fw = document.getElementById("finalWave"); if (fw) fw.textContent = level;
@@ -401,7 +437,11 @@ export default function Game() {
     let last = 0;
     function loop(ts) {
       if (state === "gameover" || state === "win" || state === "levelup") {
-        draw();
+        if (!isPaused) draw();
+        raf = requestAnimationFrame(loop);
+        return;
+      }
+      if (isPaused) {
         raf = requestAnimationFrame(loop);
         return;
       }
@@ -839,13 +879,14 @@ export default function Game() {
 
     document.addEventListener("keydown", e => {
       if (e.key === "s" || e.key === "S") useShield();
-      if (e.key === " ") {
-        if (state === "idle" || state === "gameover") return;
-        if (state === "playing") {
-          if (!canDilate()) { setMsg("TARGET TOO FAR FOR SLOMO"); return; }
-          timeDilated = true; dilateTimer = 2.8;
-          const dr = document.getElementById("dilation-ring"); if (dr) dr.classList.add("active");
-        }
+      if (e.key === "p" || e.key === "P" || e.key === "Escape") togglePause();
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (state !== "playing") return;
+        if (!canDilate()) { setMsg("TARGET TOO FAR FOR SLOMO"); return; }
+        timeDilated = true; dilateTimer = 2.8;
+        const dr = document.getElementById("dilation-ring"); if (dr) dr.classList.add("active");
+        setMsg("TIME DILATED");
       }
     });
 
@@ -882,6 +923,8 @@ export default function Game() {
     document.getElementById("nextLevelBtn")?.addEventListener("click", onNextLevel);
     document.getElementById("winRestartBtn")?.addEventListener("click", onWinRestart);
     document.getElementById("musicToggleBtn")?.addEventListener("click", toggleMusic);
+    document.getElementById("pauseBtn")?.addEventListener("click", togglePause);
+    document.getElementById("resumeBtn")?.addEventListener("click", togglePause);
 
     // Service Worker
     /* 
@@ -917,18 +960,41 @@ export default function Game() {
       const lbList = document.getElementById("lb-list");
       if (!lbList) return;
 
+      const hasToken = !!localStorage.getItem("idToken");
+      const pilotStatus = document.getElementById("pilot-status-val");
+      if (pilotStatus) {
+        pilotStatus.textContent = hasToken ? "VERIFIED" : "GUEST";
+        pilotStatus.style.color = hasToken ? "var(--green)" : "var(--amber)";
+      }
+
       try {
-        lbList.innerHTML = `<div style="color: var(--cyan); font-size: 10px; opacity: 0.5;">DECRYPTING SERVER RECORDS...</div>`;
-        const LEADERBOARD_URL = BACKEND_URL.replace("/track-user", "/get-leaderboard") + `?gameId=${GAME_ID}`;
+        lbList.innerHTML = `<div style="color: var(--cyan); font-size: 10px; opacity: 0.5; text-align: center;">DECRYPTING SERVER RECORDS...</div>`;
+
+        // Safer URL construction
+        const baseUrl = BACKEND_URL.includes("/track-user")
+          ? BACKEND_URL.split("/track-user")[0]
+          : BACKEND_URL.split("/").slice(0, -1).join("/");
+        const LEADERBOARD_URL = `${baseUrl}/get-leaderboard?gameId=${GAME_ID}`;
+
         const response = await fetch(LEADERBOARD_URL);
         let data = [];
-        if (response.ok) data = await response.json();
+        if (response.ok) {
+          const rawData = await response.json();
+          // Extract array from various possible structures
+          if (Array.isArray(rawData)) data = rawData;
+          else if (rawData.leaderboard && Array.isArray(rawData.leaderboard)) data = rawData.leaderboard;
+          else if (rawData.data && Array.isArray(rawData.data)) data = rawData.data;
+          else if (rawData.scores && Array.isArray(rawData.scores)) data = rawData.scores;
+        }
 
         lbList.innerHTML = "";
         const modes = ["easy", "medium", "hard"];
         let anyData = false;
         modes.forEach(mode => {
-          const modeScores = data.filter(d => d.difficulty === mode).slice(0, 3);
+          const modeScores = data
+            .filter(d => d.difficulty && d.difficulty.toLowerCase() === mode.toLowerCase())
+            .sort((a, b) => (b.score || 0) - (a.score || 0))
+            .slice(0, 3);
           if (modeScores.length === 0) return;
           anyData = true;
 
@@ -1002,6 +1068,8 @@ export default function Game() {
       document.getElementById("nextLevelBtn")?.removeEventListener("click", onNextLevel);
       document.getElementById("winRestartBtn")?.removeEventListener("click", onWinRestart);
       document.getElementById("musicToggleBtn")?.removeEventListener("click", toggleMusic);
+      document.getElementById("pauseBtn")?.removeEventListener("click", togglePause);
+      document.getElementById("resumeBtn")?.removeEventListener("click", togglePause);
       if (bgMusic) bgMusic.pause();
     };
   }, []);
@@ -1013,17 +1081,33 @@ export default function Game() {
       {/* HUD */}
       <div id="hud">
         <div className="hud-block"><div className="hud-label">SCORE</div><div className="hud-val" id="scoreEl">0</div></div>
-        <div className="hud-block"><div className="hud-label">LEVEL</div><div className="hud-val" id="levelEl" style={{ color: "var(--green)" }}>1</div></div>
         <div className="hud-block"><div className="hud-label">COMBO</div><div className="hud-val combo" id="comboEl">0</div></div>
         <div className="hud-block" style={{ borderLeft: "2px solid rgba(255,23,68,0.3)", paddingLeft: "15px" }}>
           <div className="hud-label" style={{ color: "var(--red)" }}>LIVES</div>
           <div className="hud-val lives" id="livesEl" style={{ fontSize: "24px", color: "var(--red)", textShadow: "0 0 15px rgba(255,23,68,0.4)" }}>3</div>
         </div>
-        <div className="hud-block"><button id="musicToggleBtn" className="music-btn">🔊</button></div>
+        <div className="hud-block" style={{ flexDirection: "row", gap: "10px", minWidth: "100px" }}>
+          <button id="pauseBtn" className="pause-btn" title="Pause Game (P)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg>
+          </button>
+          <button id="musicToggleBtn" className="music-btn" title="Toggle Music">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </button>
+        </div>
       </div>
-      <div id="combo-bar-wrap"><div id="combo-bar-bg"><div id="combo-bar"></div></div></div>
-      <div id="lvl-prog-wrap" style={{ height: "4px", background: "rgba(255,255,255,0.05)", width: "100%", position: "relative" }}>
-        <div id="lvl-prog-bar" style={{ height: "100%", width: "0%", background: "var(--green)", boxShadow: "0 0 10px var(--green)", transition: "width 0.3s ease" }}></div>
+      <div id="lvl-prog-wrap" style={{ padding: "2px 15px 4px", background: "rgba(0, 229, 255, 0.05)", borderBottom: "1px solid rgba(0, 229, 255, 0.15)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "rgba(0, 229, 255, 0.5)", marginBottom: "3px", letterSpacing: "0.1em" }}>
+          <span>LEVEL PROGRESS</span>
+          <span style={{ color: "var(--cyan)", fontWeight: "bold" }}>LEVEL <span id="levelEl">1</span></span>
+        </div>
+        <div style={{ height: "4px", background: "rgba(255,255,255,0.05)", borderRadius: "2px", overflow: "hidden" }}>
+          <div id="lvl-prog-bar" style={{ height: "100%", width: "0%", background: "linear-gradient(90deg, var(--green), var(--cyan))", boxShadow: "0 0 12px rgba(0,242,255,0.4)", transition: "width 0.3s ease" }}></div>
+        </div>
+      </div>
+      <div id="combo-bar-wrap" style={{ height: "2px", background: "rgba(0,0,0,0.2)" }}>
+        <div id="combo-bar-bg" style={{ height: "100%" }}>
+          <div id="combo-bar" style={{ height: "100%", background: "var(--amber)", width: "0%", transition: "width 0.2s" }}></div>
+        </div>
       </div>
 
       {/* Canvas */}
@@ -1154,7 +1238,7 @@ export default function Game() {
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: "9px", color: "var(--cyan)", letterSpacing: "0.15em", fontWeight: "bold", opacity: 0.6 }}>PILOT STATUS</div>
-            <div style={{ fontSize: "14px", color: "var(--green)", fontWeight: "bold", textShadow: "0 0 10px rgba(0,255,136,0.3)" }}>ACTIVE</div>
+            <div id="pilot-status-val" style={{ fontSize: "14px", color: "var(--green)", fontWeight: "bold", textShadow: "0 0 10px rgba(0,255,136,0.3)" }}>ACTIVE</div>
           </div>
         </div>
 
@@ -1169,7 +1253,7 @@ export default function Game() {
           flexDirection: "column",
           alignItems: "center"
         }}>
-          <div style={{ fontSize: "11px", color: "var(--cyan)", margin: "14px 0 6px", letterSpacing: "0.3em", fontWeight: "bold", textShadow: "0 0 10px rgba(0,242,255,0.3)" }}>IIITL BEST SCORERS</div>
+          <div style={{ fontSize: "11px", color: "var(--cyan)", margin: "14px 0 6px", letterSpacing: "0.3em", fontWeight: "bold", textShadow: "0 0 10px rgba(0,242,255,0.3)" }}>BEST SCORERS</div>
           <div id="lb-list" style={{ width: "100%", minHeight: "154px", display: "flex", flexDirection: "column", justifyContent: "flex-start", transition: "all 0.3s ease" }}>
             {/* Rows populated by JS */}
           </div>
@@ -1202,6 +1286,15 @@ export default function Game() {
         <div className="ov-subtitle">PROTOCOL SUCCESSFULLY DEFENDED</div>
         <div className="ov-score" id="winScoreEl">0</div>
         <button className="big-btn" id="winRestartBtn">PLAY AGAIN</button>
+      </div>
+
+      {/* Pause overlay */}
+      <div className="overlay hidden" id="pauseOverlay" style={{ background: "rgba(0,0,0,0.6)", zIndex: 110, backdropFilter: "blur(4px)" }}>
+        <div className="pause-overlay-content">
+          <div className="ov-title" style={{ color: "var(--amber)", textShadow: "0 0 20px rgba(255,171,0,0.5)" }}>PAUSED</div>
+          <div className="ov-subtitle" style={{ color: "rgba(255,171,0,0.7)" }}>MISSION ON HOLD</div>
+          <button className="big-btn" id="resumeBtn" style={{ borderColor: "var(--amber)", color: "var(--amber)", background: "rgba(255, 171, 0, 0.1)", marginTop: "10px" }}>RESUME MISSION</button>
+        </div>
       </div>
     </div>
   );
