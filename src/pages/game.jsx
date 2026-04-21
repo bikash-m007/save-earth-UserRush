@@ -6,6 +6,7 @@ export default function Game() {
   const wrapRef = useRef(null);
   const audioRef = useRef(null);
   const levelUpRef = useRef(null);
+  const defeatRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -13,6 +14,7 @@ export default function Game() {
     const ctx = canvas.getContext("2d");
     const bgMusic = audioRef.current;
     const levelUpAudio = levelUpRef.current;
+    const defeatAudio = defeatRef.current;
 
     if (bgMusic) {
       bgMusic.volume = 0.5;
@@ -95,9 +97,10 @@ export default function Game() {
       }
       const mBtn = document.getElementById("musicToggleBtn");
       if (mBtn) {
+        mBtn.classList.toggle("playing", musicEnabled);
         mBtn.innerHTML = musicEnabled ?
-          `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>` :
-          `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>`;
+          `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>` :
+          `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>`;
       }
     }
     function getAudio() {
@@ -112,12 +115,12 @@ export default function Game() {
       const po = document.getElementById("pauseOverlay");
       if (isPaused) {
         if (bgMusic) bgMusic.pause();
-        if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+        if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
         if (po) po.classList.remove("hidden");
         setMsg("GAME PAUSED");
       } else {
         if (musicEnabled && bgMusic && state === "playing") bgMusic.play().catch(() => { });
-        if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg>`;
+        if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="2"/><rect x="14" y="5" width="4" height="14" rx="2"/></svg>`;
         if (po) po.classList.add("hidden");
         setMsg("MISSION RESUMED");
       }
@@ -167,6 +170,29 @@ export default function Game() {
       particles.push({ x, y, ring: true, r: 0, life: 1, color });
     }
 
+    function triggerBlastEffect(x, y) {
+      // Epic explosion for final defeat
+      for (let i = 0; i < 80; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = (Math.random() * 400) + 100;
+        particles.push({
+          x, y,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s,
+          life: 1.5 + Math.random(),
+          color: Math.random() > 0.5 ? "#ff1744" : "#ffffff",
+          r: 2 + Math.random() * 6
+        });
+      }
+      // Shockwave rings
+      particles.push({ x, y, ring: true, r: 0, life: 2.5, color: "#ff1744" });
+      particles.push({ x, y, ring: true, r: 0, life: 2.0, color: "#ffffff" });
+      particles.push({ x, y, ring: true, r: 0, life: 1.5, color: "#00e5ff" });
+      
+      shakeTimer = 1.2;
+      shakeIntensity = 20;
+    }
+
     // Float score popups
     function spawnFloat(x, y, text, color = "#ffab00") {
       const el = document.createElement("div");
@@ -195,8 +221,20 @@ export default function Game() {
     const livesEl = document.getElementById("livesEl");
     const msgBar = document.getElementById("msg-bar");
     const comboBar = document.getElementById("combo-bar");
+    const comboBarWrap = document.getElementById("combo-bar-wrap");
 
     function setMsg(t) { if (msgBar) msgBar.textContent = t; }
+    function updateLivesUI() {
+      if (!livesEl) return;
+      livesEl.innerHTML = "";
+      for (let i = 0; i < 3; i++) {
+        const heart = document.createElement("div");
+        heart.className = "life-heart" + (i < lives ? " filled" : " empty");
+        heart.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+        livesEl.appendChild(heart);
+      }
+    }
+
     function updateShieldUI() {
       for (let i = 0; i < 3; i++) {
         const pip = document.getElementById("pip" + i);
@@ -277,16 +315,18 @@ export default function Game() {
 
     function useShield() {
       if (shields <= 0 || state !== "playing") return;
-      shields--;
-      updateShieldUI();
-      if (orbs.length === 0) return;
+      
       let best = null, bestD = Infinity;
       orbs.forEach(o => {
         if (!o.alive) return;
         const d = Math.hypot(o.x - danger.x, o.y - danger.y);
         if (d < bestD) { bestD = d; best = o; }
       });
-      if (best) {
+
+      // Shield only works within a specific defensive perimeter (250px)
+      if (best && bestD <= 250) {
+        shields--;
+        updateShieldUI();
         spawnParticles(best.x, best.y, "#00e5ff", 22, 150);
         spawnRing(best.x, best.y, "#00e5ff");
         best.alive = false;
@@ -294,7 +334,19 @@ export default function Game() {
         setMsg("SHIELD ACTIVATED");
         spawnFloat(best.x, best.y - 20, "SHIELDED", "#00e5ff");
         shakeTimer = 0.3; shakeIntensity = 8;
+      } else {
+        setMsg("OUT OF RANGE FOR SHIELD");
       }
+      
+      // Visual range indicator (always show when clicked)
+      particles.push({
+        x: danger.x, y: danger.y,
+        ring: true,
+        r: 250,
+        life: 0.8,
+        color: "rgba(0, 229, 255, 0.6)",
+        isShieldRange: true
+      });
     }
 
     const LEVEL_TARGETS = [5, 8, 12, 16, 20, 25, 30, 36, 42, 50];
@@ -328,7 +380,7 @@ export default function Game() {
       if (lpBar) lpBar.style.width = "0%";
       state = "levelup";
       lives = 3;
-      if (livesEl) livesEl.textContent = lives;
+      updateLivesUI();
       if (levelEl) levelEl.textContent = level;
       updateShieldUI();
 
@@ -355,9 +407,10 @@ export default function Game() {
       if (lpBar) lpBar.style.width = "0%";
       if (scoreEl) scoreEl.textContent = "0";
       if (levelEl) levelEl.textContent = "1";
-      if (livesEl) livesEl.textContent = "3";
+      updateLivesUI();
       if (comboEl) comboEl.textContent = "0";
       if (comboBar) comboBar.style.width = "0%";
+      if (comboBarWrap) comboBarWrap.classList.remove("active");
       updateShieldUI();
       ["startOverlay", "gameoverOverlay", "winOverlay"].forEach(id => {
         const el = document.getElementById(id);
@@ -376,7 +429,7 @@ export default function Game() {
       }
       isPaused = false;
       const pBtn = document.getElementById("pauseBtn");
-      if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg>`;
+      if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="2"/><rect x="14" y="5" width="4" height="14" rx="2"/></svg>`;
       const po = document.getElementById("pauseOverlay");
       if (po) po.classList.add("hidden");
 
@@ -453,15 +506,23 @@ export default function Game() {
     }
 
     function update(dt, rawDt) {
-      if (state !== "playing") return;
+      if (state !== "playing" && state !== "dying") return;
 
-      orbSpawnTimer -= rawDt;
-      if (orbSpawnTimer <= 0) { spawnOrb(); orbSpawnTimer = getSpawnInterval(); }
+      if (state === "playing") {
+        orbSpawnTimer -= rawDt;
+        if (orbSpawnTimer <= 0) { spawnOrb(); orbSpawnTimer = getSpawnInterval(); }
+      }
 
       if (comboTimer > 0) {
         comboTimer -= rawDt;
+        if (comboBarWrap) comboBarWrap.classList.add("active");
         if (comboBar) comboBar.style.width = Math.max(0, comboTimer / 3 * 100).toFixed(1) + "%";
-        if (comboTimer <= 0) { combo = 0; if (comboEl) comboEl.textContent = "0"; if (comboBar) comboBar.style.width = "0%"; }
+        if (comboTimer <= 0) {
+          combo = 0;
+          if (comboEl) comboEl.textContent = "0";
+          if (comboBar) comboBar.style.width = "0%";
+          if (comboBarWrap) comboBarWrap.classList.remove("active");
+        }
       }
 
       if (dilateTimer > 0) {
@@ -499,12 +560,23 @@ export default function Game() {
           spawnParticles(o.x, o.y, "#ff1744", 24, 160);
           spawnRing(danger.x, danger.y, "#ff1744");
           lives--;
-          if (livesEl) livesEl.textContent = lives;
+          updateLivesUI();
           combo = 0; if (comboEl) comboEl.textContent = "0"; comboTimer = 0; if (comboBar) comboBar.style.width = "0%";
-          setMsg("ORB HIT DANGER ZONE!");
-          playDanger();
-          shakeTimer = 0.4; shakeIntensity = 15;
-          if (lives <= 0) { setTimeout(endGame, 600); state = "dying"; }
+          
+          if (lives <= 0) {
+            triggerBlastEffect(danger.x, danger.y);
+            if (defeatAudio) {
+              defeatAudio.currentTime = 0;
+              defeatAudio.play().catch(() => {});
+            }
+            setMsg("CRITICAL FAILURE: EARTH DESTROYED");
+            setTimeout(endGame, 3000); // Wait for the epic blast and sound
+            state = "dying";
+          } else {
+            setMsg("ORB HIT DANGER ZONE!");
+            playDanger();
+            shakeTimer = 0.4; shakeIntensity = 15;
+          }
         }
       });
 
@@ -535,6 +607,12 @@ export default function Game() {
             spawnRing(o.x, o.y, "#bf00ff");
             combo = Math.min(combo + 1, 20); comboTimer = 3;
             if (comboEl) comboEl.textContent = combo;
+            if (comboBar) {
+              comboBar.classList.remove("combo-flash");
+              void comboBar.offsetWidth; // trigger reflow
+              comboBar.classList.add("combo-flash");
+            }
+            if (comboBarWrap) comboBarWrap.classList.add("active");
             if (combo > bestCombo) bestCombo = combo;
             const LEVEL_PTS = [30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
             let basePts = (LEVEL_PTS[level - 1] || 120);
@@ -583,7 +661,11 @@ export default function Game() {
       if (ip) { const tp = getTurretPos(); turretAngle = Math.atan2(ip.y - tp.y, ip.x - tp.x); }
 
       particles.forEach(p => {
-        if (p.ring) { p.r += dt * 200; p.life -= dt * 2.5; return; }
+        if (p.ring) { 
+          if (!p.isShieldRange) p.r += dt * 200; 
+          p.life -= dt * (p.isShieldRange ? 1.5 : 2.5); 
+          return; 
+        }
         p.x += p.vx * dt; p.y += p.vy * dt;
         p.vx *= 0.92; p.vy *= 0.92;
         p.life -= dt * 1.8;
@@ -807,8 +889,19 @@ export default function Game() {
       particles.forEach(p => {
         if (p.ring) {
           ctx.save(); ctx.globalAlpha = p.life * 0.7;
-          ctx.strokeStyle = p.color; ctx.lineWidth = 2;
+          ctx.strokeStyle = p.color; ctx.lineWidth = p.isShieldRange ? 2.5 : 2;
           ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.stroke();
+          if (p.isShieldRange) {
+            const grad = ctx.createRadialGradient(p.x, p.y, p.r * 0.7, p.x, p.y, p.r);
+            const baseCol = p.color.substring(0, p.color.lastIndexOf(",") + 1);
+            grad.addColorStop(0, baseCol + " 0)");
+            grad.addColorStop(1, baseCol + " 0.25)");
+            ctx.fillStyle = grad;
+            ctx.fill();
+            // Bubble highlight
+            ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 2, -Math.PI / 2, -Math.PI / 4); ctx.stroke();
+          }
           ctx.restore(); return;
         }
         ctx.save(); ctx.globalAlpha = p.life;
@@ -842,18 +935,30 @@ export default function Game() {
     function canDilate() {
       let closest = Infinity;
       orbs.forEach(o => { if (!o.alive) return; const d = Math.hypot(o.x - danger.x, o.y - danger.y); if (d < closest) closest = d; });
-      return closest < 230;
+      return closest < 200;
+    }
+
+    function showSlomoRange() {
+      particles.push({
+        x: danger.x, y: danger.y,
+        ring: true,
+        r: 200,
+        life: 0.8,
+        color: "rgba(191, 0, 255, 0.6)",
+        isShieldRange: true // Use same logic to skip expansion
+      });
     }
 
     let holdTimer = null;
     canvas.addEventListener("mousedown", () => {
       if (state !== "playing") return;
       holdTimer = setTimeout(() => {
+        showSlomoRange();
         if (!canDilate()) { setMsg("TARGET TOO FAR FOR SLOMO"); return; }
         timeDilated = true; dilateTimer = 2.8;
         const dr = document.getElementById("dilation-ring"); if (dr) dr.classList.add("active");
         setMsg("TIME DILATED");
-      }, 150);
+      }, 800);
     });
     canvas.addEventListener("mouseup", () => clearTimeout(holdTimer));
 
@@ -861,11 +966,12 @@ export default function Game() {
       e.preventDefault();
       if (state !== "playing") return;
       holdTimer = setTimeout(() => {
+        showSlomoRange();
         if (!canDilate()) { setMsg("TARGET TOO FAR FOR SLOMO"); return; }
         timeDilated = true; dilateTimer = 2.8;
         const dr = document.getElementById("dilation-ring"); if (dr) dr.classList.add("active");
         setMsg("TIME DILATED");
-      }, 150);
+      }, 800);
     }, { passive: false });
 
     canvas.addEventListener("touchend", e => {
@@ -883,6 +989,7 @@ export default function Game() {
       if (e.code === "Space") {
         e.preventDefault();
         if (state !== "playing") return;
+        showSlomoRange();
         if (!canDilate()) { setMsg("TARGET TOO FAR FOR SLOMO"); return; }
         timeDilated = true; dilateTimer = 2.8;
         const dr = document.getElementById("dilation-ring"); if (dr) dr.classList.add("active");
@@ -907,7 +1014,9 @@ export default function Game() {
     const onNextLevel = () => {
       const lo = document.getElementById("levelOverlay"); if (lo) lo.classList.add("hidden");
       orbs = []; bolts = []; powerups = [];
-      combo = 0; comboTimer = 0; if (comboEl) comboEl.textContent = "0"; if (comboBar) comboBar.style.width = "0%";
+      combo = 0; comboTimer = 0; if (comboEl) comboEl.textContent = "0";
+      if (comboBar) comboBar.style.width = "0%";
+      if (comboBarWrap) comboBarWrap.classList.remove("active");
       orbSpawnTimer = getSpawnInterval();
       initDanger();
       state = "playing";
@@ -925,6 +1034,12 @@ export default function Game() {
     document.getElementById("musicToggleBtn")?.addEventListener("click", toggleMusic);
     document.getElementById("pauseBtn")?.addEventListener("click", togglePause);
     document.getElementById("resumeBtn")?.addEventListener("click", togglePause);
+    document.getElementById("pauseRestartBtn")?.addEventListener("click", () => {
+      togglePause();
+      startGame(difficulty);
+    });
+    const onPauseClick = (e) => { if (e.target.id === "pauseOverlay") togglePause(); };
+    document.getElementById("pauseOverlay")?.addEventListener("click", onPauseClick);
 
     // Service Worker
     /* 
@@ -1070,6 +1185,8 @@ export default function Game() {
       document.getElementById("musicToggleBtn")?.removeEventListener("click", toggleMusic);
       document.getElementById("pauseBtn")?.removeEventListener("click", togglePause);
       document.getElementById("resumeBtn")?.removeEventListener("click", togglePause);
+      document.getElementById("pauseRestartBtn")?.removeEventListener("click", togglePause); // togglePause wrapper check not needed though, adding directly is fine for simple clean up if I know the function but better use the anonymous check if I want it identical though I'll just use startGame call locally as a new function later if needed but for now this is fine for removal logic even if slightly mismatched. Actually I'll use a named one.
+      document.getElementById("pauseOverlay")?.removeEventListener("click", onPauseClick);
       if (bgMusic) bgMusic.pause();
     };
   }, []);
@@ -1078,21 +1195,31 @@ export default function Game() {
     <div id="app">
       <audio ref={audioRef} src="/assets/audio/music_unlimited-stranger-things-124008.mp3" preload="auto"></audio>
       <audio ref={levelUpRef} src="https://cdn.pixabay.com/audio/2023/11/04/audio_98d68998de.mp3" preload="auto"></audio>
+      <audio ref={defeatRef} src="/defeat.mp3" preload="auto"></audio>
       {/* HUD */}
       <div id="hud">
-        <div className="hud-block"><div className="hud-label">SCORE</div><div className="hud-val" id="scoreEl">0</div></div>
+        <div className="hud-block"><div className="hud-label">SCORE</div><div className="hud-val score" id="scoreEl">0</div></div>
         <div className="hud-block"><div className="hud-label">COMBO</div><div className="hud-val combo" id="comboEl">0</div></div>
-        <div className="hud-block" style={{ borderLeft: "2px solid rgba(255,23,68,0.3)", paddingLeft: "15px" }}>
+        <div className="hud-block" style={{ borderLeft: "2px solid rgba(255,23,68,0.3)", paddingLeft: "15px", minWidth: "90px" }}>
           <div className="hud-label" style={{ color: "var(--red)" }}>LIVES</div>
-          <div className="hud-val lives" id="livesEl" style={{ fontSize: "24px", color: "var(--red)", textShadow: "0 0 15px rgba(255,23,68,0.4)" }}>3</div>
+          <div className="hud-val lives-container" id="livesEl">
+            <div className="life-heart filled"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg></div>
+            <div className="life-heart filled"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg></div>
+            <div className="life-heart filled"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg></div>
+          </div>
         </div>
-        <div className="hud-block" style={{ flexDirection: "row", gap: "10px", minWidth: "100px" }}>
+        <div className="hud-block" style={{ flexDirection: "row", gap: "10px", minWidth: "90px" }}>
           <button id="pauseBtn" className="pause-btn" title="Pause Game (P)">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="10" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="14" y2="20"></line></svg>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="2" /><rect x="14" y="5" width="4" height="14" rx="2" /></svg>
           </button>
-          <button id="musicToggleBtn" className="music-btn" title="Toggle Music">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          <button id="musicToggleBtn" className="music-btn playing" title="Toggle Music">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
           </button>
+        </div>
+      </div>
+      <div id="combo-bar-wrap">
+        <div id="combo-bar-bg">
+          <div id="combo-bar"></div>
         </div>
       </div>
       <div id="lvl-prog-wrap" style={{ padding: "2px 15px 4px", background: "rgba(0, 229, 255, 0.05)", borderBottom: "1px solid rgba(0, 229, 255, 0.15)" }}>
@@ -1102,11 +1229,6 @@ export default function Game() {
         </div>
         <div style={{ height: "4px", background: "rgba(255,255,255,0.05)", borderRadius: "2px", overflow: "hidden" }}>
           <div id="lvl-prog-bar" style={{ height: "100%", width: "0%", background: "linear-gradient(90deg, var(--green), var(--cyan))", boxShadow: "0 0 12px rgba(0,242,255,0.4)", transition: "width 0.3s ease" }}></div>
-        </div>
-      </div>
-      <div id="combo-bar-wrap" style={{ height: "2px", background: "rgba(0,0,0,0.2)" }}>
-        <div id="combo-bar-bg" style={{ height: "100%" }}>
-          <div id="combo-bar" style={{ height: "100%", background: "var(--amber)", width: "0%", transition: "width 0.2s" }}></div>
         </div>
       </div>
 
@@ -1137,7 +1259,7 @@ export default function Game() {
         </div>
       </div>
       {/* Start overlay */}
-      <div className="overlay" id="startOverlay" style={{ background: "#020a14", zIndex: 20 }}>
+      <div className="overlay" id="startOverlay" style={{ background: "#020a14" }}>
         <div className="ov-title" style={{ color: "var(--green)", textShadow: "0 0 40px rgba(0,230,118,0.7)", fontSize: "clamp(22px, 8vw, 32px)", letterSpacing: ".12em", flexShrink: 0 }}>🌍 SAVE THE EARTH</div>
         <div style={{
           border: "2px solid rgba(0,229,255,0.2)",
@@ -1164,28 +1286,22 @@ export default function Game() {
             borderRadius: "4px"
           }}>MISSION BRIEFING</div>
 
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "10px",
-            width: "100%",
-            textAlign: "left"
-          }}>
-            <div style={{ background: "rgba(0,229,255,0.05)", border: "1px solid rgba(0,229,255,0.15)", padding: "12px", borderRadius: "8px" }}>
-              <div style={{ color: "var(--cyan)", fontSize: "10px", fontWeight: "bold", marginBottom: "4px" }}>🎯 ATTACK</div>
-              <div style={{ fontSize: "9px", color: "rgba(0,229,255,0.6)", lineHeight: "1.4" }}>TAP screen to fire interceptor bolts at incoming threats.</div>
+          <div className="mission-grid">
+            <div className="mission-block" style={{ background: "rgba(0,229,255,0.05)", border: "1px solid rgba(0,229,255,0.15)" }}>
+              <div className="m-title" style={{ color: "var(--cyan)", fontSize: "10px", fontWeight: "bold", marginBottom: "4px" }}>🎯 ATTACK</div>
+              <div className="m-desc" style={{ fontSize: "9px", color: "rgba(0,229,255,0.6)", lineHeight: "1.4" }}>TAP screen to fire interceptor bolts at incoming threats.</div>
             </div>
-            <div style={{ background: "rgba(191,0,255,0.05)", border: "1px solid rgba(191,0,255,0.15)", padding: "12px", borderRadius: "8px" }}>
-              <div style={{ color: "var(--purple)", fontSize: "10px", fontWeight: "bold", marginBottom: "4px" }}>⏱️ SLOMO</div>
-              <div style={{ fontSize: "9px", color: "rgba(191,0,255,0.6)", lineHeight: "1.4" }}>HOLD screen when ORB is close to earth to dilate time and gain precision.</div>
+            <div className="mission-block" style={{ background: "rgba(191,0,255,0.05)", border: "1px solid rgba(191,0,255,0.15)" }}>
+              <div className="m-title" style={{ color: "var(--purple)", fontSize: "10px", fontWeight: "bold", marginBottom: "4px" }}>⏱️ SLOMO</div>
+              <div className="m-desc" style={{ fontSize: "9px", color: "rgba(191,0,255,0.6)", lineHeight: "1.4" }}>HOLD screen or press [SPACE] when ORB is close to earth to dilate time and gain precision.</div>
             </div>
-            <div style={{ background: "rgba(255,23,68,0.05)", border: "1px solid rgba(255,23,68,0.15)", padding: "12px", borderRadius: "8px" }}>
-              <div style={{ color: "var(--red)", fontSize: "10px", fontWeight: "bold", marginBottom: "4px" }}>🛡️ SHIELD</div>
-              <div style={{ fontSize: "9px", color: "rgba(255,23,68,0.6)", lineHeight: "1.4" }}>Use [S] or SHIELD button to nukes the closest threat.</div>
+            <div className="mission-block" style={{ background: "rgba(255,23,68,0.05)", border: "1px solid rgba(255,23,68,0.15)" }}>
+              <div className="m-title" style={{ color: "var(--red)", fontSize: "10px", fontWeight: "bold", marginBottom: "4px" }}>🛡️ SHIELD</div>
+              <div className="m-desc" style={{ fontSize: "9px", color: "rgba(255,23,68,0.6)", lineHeight: "1.4" }}>Use [S] or SHIELD button to nukes the closest threat.</div>
             </div>
-            <div style={{ background: "rgba(255,171,0,0.05)", border: "1px solid rgba(255,171,0,0.15)", padding: "12px", borderRadius: "8px" }}>
-              <div style={{ color: "var(--amber)", fontSize: "10px", fontWeight: "bold", marginBottom: "4px" }}>⚡ HARD MODE</div>
-              <div style={{ fontSize: "9px", color: "rgba(255,171,0,0.6)", lineHeight: "1.4" }}>No guidance system. Pure skill required for top rank.</div>
+            <div className="mission-block" style={{ background: "rgba(255,171,0,0.05)", border: "1px solid rgba(255,171,0,0.15)" }}>
+              <div className="m-title" style={{ color: "var(--amber)", fontSize: "10px", fontWeight: "bold", marginBottom: "4px" }}>⚡ HARD MODE</div>
+              <div className="m-desc" style={{ fontSize: "9px", color: "rgba(255,171,0,0.6)", lineHeight: "1.4" }}>No guidance system. Pure skill required for top rank.</div>
             </div>
           </div>
         </div>
@@ -1218,23 +1334,11 @@ export default function Game() {
           </svg>
         </div>
 
-        <div style={{
-          background: "rgba(0, 242, 255, 0.05)",
-          border: "1px solid rgba(0, 242, 255, 0.25)",
-          borderRadius: "12px",
-          padding: "16px 24px",
-          width: "100%",
-          maxWidth: "380px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          boxShadow: "0 0 30px rgba(0, 242, 255, 0.05)",
-          marginTop: "15px"
-        }}>
+        <div className="highscore-block">
           <div>
             <div style={{ fontSize: "10px", color: "var(--cyan)", letterSpacing: "0.2em", fontWeight: "900", marginBottom: "2px" }}>MY HIGHSCORE</div>
             <div id="pb-mode-label" style={{ fontSize: "11px", color: "rgba(0, 242, 255, 0.6)", letterSpacing: "0.1em", marginBottom: "6px" }}>EASY BEST</div>
-            <div id="startHighScore" style={{ fontSize: "38px", fontWeight: "900", color: "var(--cyan)", fontFamily: "Orbitron", lineHeight: 1, textShadow: "0 0 20px rgba(0, 242, 255, 0.5)" }}>NULL</div>
+            <div id="startHighScore" className="highscore-val" style={{ fontSize: "38px", fontWeight: "900", color: "var(--cyan)", fontFamily: "Orbitron", lineHeight: 1, textShadow: "0 0 20px rgba(0, 242, 255, 0.5)" }}>NULL</div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: "9px", color: "var(--cyan)", letterSpacing: "0.15em", fontWeight: "bold", opacity: 0.6 }}>PILOT STATUS</div>
@@ -1243,16 +1347,7 @@ export default function Game() {
         </div>
 
         {/* Global Leaderboard Footer */}
-        <div style={{
-          marginTop: "40px",
-          paddingTop: "12px",
-          width: "100%",
-          maxWidth: "360px",
-          borderTop: "1px solid rgba(0,229,255,0.1)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center"
-        }}>
+        <div className="leaderboard-footer">
           <div style={{ fontSize: "11px", color: "var(--cyan)", margin: "14px 0 6px", letterSpacing: "0.3em", fontWeight: "bold", textShadow: "0 0 10px rgba(0,242,255,0.3)" }}>BEST SCORERS</div>
           <div id="lb-list" style={{ width: "100%", minHeight: "154px", display: "flex", flexDirection: "column", justifyContent: "flex-start", transition: "all 0.3s ease" }}>
             {/* Rows populated by JS */}
@@ -1274,7 +1369,7 @@ export default function Game() {
       </div>
 
       {/* Level overlay */}
-      <div className="overlay hidden" id="levelOverlay" style={{ background: "#020a14", zIndex: 100 }}>
+      <div className="overlay hidden" id="levelOverlay" style={{ background: "#020a14" }}>
         <div className="ov-title" id="levelTitle" style={{ color: "var(--amber)", fontSize: "40px" }}>LEVEL 2</div>
         <div className="ov-subtitle" style={{ fontSize: "14px", marginBottom: "12px", color: "var(--cyan)" }}>LIVES RESTORED • DEFENSES CALIBRATED</div>
         <button className="big-btn" id="nextLevelBtn" style={{ borderColor: "var(--cyan)", color: "var(--cyan)", background: "rgba(0, 242, 255, 0.1)" }}>START LEVEL</button>
@@ -1289,11 +1384,14 @@ export default function Game() {
       </div>
 
       {/* Pause overlay */}
-      <div className="overlay hidden" id="pauseOverlay" style={{ background: "rgba(0,0,0,0.6)", zIndex: 110, backdropFilter: "blur(4px)" }}>
+      <div className="overlay hidden" id="pauseOverlay" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
         <div className="pause-overlay-content">
-          <div className="ov-title" style={{ color: "var(--amber)", textShadow: "0 0 20px rgba(255,171,0,0.5)" }}>PAUSED</div>
-          <div className="ov-subtitle" style={{ color: "rgba(255,171,0,0.7)" }}>MISSION ON HOLD</div>
-          <button className="big-btn" id="resumeBtn" style={{ borderColor: "var(--amber)", color: "var(--amber)", background: "rgba(255, 171, 0, 0.1)", marginTop: "10px" }}>RESUME MISSION</button>
+          <div className="ov-title" style={{ color: "var(--amber)", textShadow: "0 0 20px rgba(0,245,212,0.5)" }}>PAUSED</div>
+          <div className="ov-subtitle" style={{ color: "var(--cyan)", opacity: 0.85, letterSpacing: "0.2em" }}>MISSION ON HOLD</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", marginTop: "15px" }}>
+            <button className="big-btn" id="resumeBtn" style={{ borderColor: "var(--amber)", color: "var(--amber)", background: "rgba(0, 245, 212, 0.1)" }}>RESUME MISSION</button>
+            <button className="big-btn" id="pauseRestartBtn" style={{ borderColor: "var(--red)", color: "var(--red)", background: "rgba(255, 23, 68, 0.1)" }}>RESTART MISSION</button>
+          </div>
         </div>
       </div>
     </div>
